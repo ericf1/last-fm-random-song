@@ -155,7 +155,7 @@ export default function SlotDemo() {
           }
 
           setMaxPlaycount(localMax);
-          setStatus(`${username} has ${localMax} scribbles`);
+          setStatus(`${username} has ${localMax} scrobbles`);
         } catch {
           setStatus("Error fetching");
           return;
