@@ -26,7 +26,7 @@ export default function SlotDemo() {
   const [spinSignals, setSpinSignals] = useState<number[]>(
     Array(slotLength).fill(0)
   );
-  const [cursor, setCursor] = useState<number>(initialDigits.length);
+  const [cursor, setCursor] = useState<number>(-1);
 
   const spinRandom = useCallback(async () => {
     if (!username) {
@@ -105,7 +105,7 @@ export default function SlotDemo() {
     // 5) Update reels and cursor
     setTargets(rand);
     setSpinSignals((prev) => prev.map(() => Date.now()));
-    setCursor(slotLength);
+    setCursor(-1);
   }, [
     username,
     maxPlaycount,
@@ -199,7 +199,7 @@ export default function SlotDemo() {
         .fill(0)
         .concat(padded);
       setTargets(leftPad);
-      setCursor(initialDigits.length);
+      setCursor(-1);
     };
 
     function isEditingOrSelecting() {
@@ -233,16 +233,16 @@ export default function SlotDemo() {
         return;
       }
       // Optional: jump to ends
-      if (e.key === "Home") {
-        e.preventDefault();
-        setCursor(0);
-        return;
-      }
-      if (e.key === "End") {
-        e.preventDefault();
-        setCursor(slotLength);
-        return;
-      }
+      // if (e.key === "Home") {
+      //   e.preventDefault();
+      //   setCursor(0);
+      //   return;
+      // }
+      // if (e.key === "End") {
+      //   e.preventDefault();
+      //   setCursor(slotLength);
+      //   return;
+      // }
 
       if (e.key >= "0" && e.key <= "9") {
         if (cursor < slotLength) {
