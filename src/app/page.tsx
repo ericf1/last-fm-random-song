@@ -1,6 +1,15 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+
+type Track = {
+  artist: { "#text": string };
+  name: string;
+  album: { "#text": string };
+  image: Array<{ "#text": string; size: string }>;
+  date?: { uts: string; "#text": string };
+};
 
 export default function SlotDemo() {
   const initialDigits = [0, 0, 0, 0, 0, 0, 0];
@@ -11,7 +20,7 @@ export default function SlotDemo() {
   const [maxPlaycount, setMaxPlaycount] = useState<number | null>(null);
   const [status, setStatus] = useState<string>("");
 
-  const [track, setTrack] = useState<any>(null);
+  const [track, setTrack] = useState<Track | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   const [spinSignals, setSpinSignals] = useState<number[]>(
@@ -19,116 +28,145 @@ export default function SlotDemo() {
   );
   const [cursor, setCursor] = useState<number>(initialDigits.length);
 
-  const spinRandom = async () => {
+  const spinRandom = useCallback(async () => {
     if (!username) {
       setStatus("Enter a Last.fm username");
       return;
     }
 
-    let max = maxPlaycount;
     setLoading(true);
-    if (username) {
-      setUsername(username);
-      setMaxPlaycount(null);
-      setTrack(null);
-      setStatus("Fetching…");
-      try {
+
+    // 1) Get maxPlaycount (use existing value if present; otherwise fetch)
+    let localMax = maxPlaycount;
+
+    try {
+      if (localMax == null) {
+        setUsername(username);
+        setMaxPlaycount(null);
+        setTrack(null);
+        setStatus("Fetching…");
+
         const res = await fetch(
           `/api/lastfm/max-playcount?user=${encodeURIComponent(username)}`
         );
+
         if (!res.ok) {
           setStatus("Server error");
           return;
         }
+
         const data = await res.json();
-        max = typeof data.maxPlaycount === "number" ? data.maxPlaycount : null;
-        if (max == null) {
+        localMax =
+          typeof data.maxPlaycount === "number" ? data.maxPlaycount : null;
+
+        if (localMax == null) {
           setStatus("No data");
           return;
         }
-        // applyNumberToReels(max);
-        setMaxPlaycount(max);
-        setStatus(`${username} has ${max} scribbles`);
-      } catch (e) {
-        setStatus("Error fetching");
+
+        setMaxPlaycount(localMax);
+        setStatus(`${username} has ${localMax} scribbles`);
       }
+    } catch {
+      setStatus("Error fetching");
+      return;
+    } finally {
+      // don't stop loading yet; we still need to fetch the nth track
     }
 
-    let random = Math.floor(Math.random() * 9999999);
-    if (max) {
-      random = Math.floor(Math.random() * Math.max(1, max));
+    // 2) Pick a random index (bounded by max if available)
+    let random = Math.floor(Math.random() * 9_999_999);
+    if (localMax) {
+      random = Math.floor(Math.random() * Math.max(1, localMax));
     }
 
+    // 3) Build the reel digits (left-pad with zeros to slotLength)
     let rand = String(random).split("").map(Number);
-
-    // pad rand until it is slotLength long
     if (rand.length < slotLength) {
       rand = Array(slotLength - rand.length)
         .fill(0)
         .concat(rand);
     }
 
-    // call server to get track
-    const track = await fetch(
-      `/api/lastfm/get-nth-song?user=${encodeURIComponent(
-        username || ""
-      )}&n=${random}&maxPlaycount=${max}`
-    )
-      .then((res) => res.json())
-      .then((data) => data.track)
-      .finally(() => setLoading(false));
+    // 4) Fetch the nth track
+    try {
+      const params = new URLSearchParams({
+        user: username,
+        n: String(random),
+        maxPlaycount: String(localMax ?? ""),
+      });
+      const res = await fetch(`/api/lastfm/get-nth-song?${params.toString()}`);
+      const data = await res.json();
+      setTrack(data.track ?? null);
+    } catch {
+      // optional: setStatus("Error fetching track");
+    } finally {
+      setLoading(false);
+    }
 
-    setTrack(track);
+    // 5) Update reels and cursor
     setTargets(rand);
     setSpinSignals((prev) => prev.map(() => Date.now()));
-    setCursor(initialDigits.length);
-  };
-
-  const spinCurrent = async () => {
-    // if we dont have maxPlacount dont do anything
-    if (!maxPlaycount || !username) {
-      return;
-    }
-    setLoading(true);
-    const currentNumber = targets.reduce(
-      (acc, digit, i) => acc + digit * 10 ** (slotLength - i - 1),
-      0
-    );
-
-    // if current number is greater than maxPlaycount, clamp to maxPlaycount
-    const clampedNumber =
-      maxPlaycount != null
-        ? Math.min(currentNumber, Math.max(1, maxPlaycount))
-        : currentNumber;
-
-    // if current number is 0, set to 1
-    const finalNumber = clampedNumber === 0 ? 1 : clampedNumber;
-
-    // call server to get track
-    const track = await fetch(
-      `/api/lastfm/get-nth-song?user=${encodeURIComponent(
-        username || ""
-      )}&n=${finalNumber}&maxPlaycount=${maxPlaycount}`
-    )
-      .then((res) => res.json())
-      .then((data) => data.track)
-      .finally(() => setLoading(false));
-
-    setTrack(track);
-    setSpinSignals((prev) => prev.map(() => Date.now()));
-    // set targets to finalNumber
-    const digits = String(finalNumber)
-      .split("")
-      .map((d) => Number(d));
-    const padded = digits.slice(-slotLength);
-    const leftPad = Array(Math.max(0, slotLength - padded.length))
-      .fill(0)
-      .concat(padded);
-    setTargets(leftPad);
-    setCursor(initialDigits.length);
-  };
+    setCursor(slotLength);
+  }, [
+    username,
+    maxPlaycount,
+    slotLength,
+    setStatus,
+    setUsername,
+    setMaxPlaycount,
+    setTrack,
+    setLoading,
+    setTargets,
+    setSpinSignals,
+    setCursor,
+  ]);
 
   useEffect(() => {
+    const spinCurrent = async () => {
+      // if we dont have maxPlacount dont do anything
+      if (!maxPlaycount || !username) {
+        return;
+      }
+      setLoading(true);
+      const currentNumber = targets.reduce(
+        (acc, digit, i) => acc + digit * 10 ** (slotLength - i - 1),
+        0
+      );
+
+      // if current number is greater than maxPlaycount, clamp to maxPlaycount
+      const clampedNumber =
+        maxPlaycount != null
+          ? Math.min(currentNumber, Math.max(1, maxPlaycount))
+          : currentNumber;
+
+      // if current number is 0, set to 1
+      const finalNumber = clampedNumber === 0 ? 1 : clampedNumber;
+
+      // call server to get track
+      const track = await fetch(
+        `/api/lastfm/get-nth-song?user=${encodeURIComponent(
+          username || ""
+        )}&n=${finalNumber}&maxPlaycount=${maxPlaycount}`
+      )
+        .then((res) => res.json())
+        .then((data) => data.track)
+        .finally(() => setLoading(false));
+
+      setTrack(track);
+      setSpinSignals((prev) => prev.map(() => Date.now()));
+      // set targets to finalNumber
+      const digits = String(finalNumber)
+        .split("")
+        .map((d) => Number(d));
+      const padded = digits.slice(-slotLength);
+      const leftPad = Array(Math.max(0, slotLength - padded.length))
+        .fill(0)
+        .concat(padded);
+      setTargets(leftPad);
+      setCursor(initialDigits.length);
+    };
+
     function isEditingOrSelecting() {
       const ae = document.activeElement as HTMLElement | null;
       const isFormField =
@@ -213,20 +251,31 @@ export default function SlotDemo() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [cursor, slotLength, spinCurrent, setCursor, setTargets, setSpinSignals]);
+  }, [
+    cursor,
+    slotLength,
+    setCursor,
+    setTargets,
+    setSpinSignals,
+    spinRandom,
+    maxPlaycount,
+    username,
+    targets,
+    initialDigits.length,
+  ]);
 
-  const applyNumberToReels = (n: number) => {
-    const digits = String(Math.max(0, Math.floor(n)))
-      .split("")
-      .map((d) => Number(d));
-    const padded = digits.slice(-slotLength); // take rightmost digits if longer
-    const leftPad = Array(Math.max(0, slotLength - padded.length))
-      .fill(0)
-      .concat(padded);
-    setTargets(leftPad);
-    setSpinSignals((prev) => prev.map(() => Date.now()));
-    setCursor(slotLength);
-  };
+  // const applyNumberToReels = (n: number) => {
+  //   const digits = String(Math.max(0, Math.floor(n)))
+  //     .split("")
+  //     .map((d) => Number(d));
+  //   const padded = digits.slice(-slotLength); // take rightmost digits if longer
+  //   const leftPad = Array(Math.max(0, slotLength - padded.length))
+  //     .fill(0)
+  //     .concat(padded);
+  //   setTargets(leftPad);
+  //   setSpinSignals((prev) => prev.map(() => Date.now()));
+  //   setCursor(slotLength);
+  // };
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -406,9 +455,10 @@ export default function SlotDemo() {
               {/* This div is absolutely positioned to fill the space created
       by the placeholder above. Your content animates inside it. */}
               <div className="absolute inset-0 flex justify-center">
-                <AnimatePresence>
+                <AnimatePresence mode="popLayout">
                   {track && (
                     <motion.div
+                      key={track?.name}
                       className="flex flex-col items-center gap-3 text-center"
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -416,12 +466,16 @@ export default function SlotDemo() {
                       transition={{ duration: 0.3 }}
                     >
                       {track.image?.[2]?.["#text"] && (
-                        <img
-                          src={track.image[2]["#text"]}
+                        <Image
+                          src={track.image[2]["#text"]} // e.g. https://lastfm.freetls.fastly.net/i/u/...
                           alt="Album Art"
-                          className="object-cover w-24 h-24 rounded-md shadow-lg"
+                          width={96}
+                          height={96} // matches w-24 h-24
+                          className="rounded-md shadow-lg object-cover"
+                          priority={false}
                         />
                       )}
+
                       <div>
                         <p className="font-bold">
                           {track.artist?.["#text"]} - {track.name}
