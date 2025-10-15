@@ -26,7 +26,6 @@ export default function SlotDemo() {
     }
 
     let max = maxPlaycount;
-    let curUsername = username;
     setLoading(true);
     if (username) {
       setUsername(username);
@@ -236,6 +235,20 @@ export default function SlotDemo() {
       tabIndex={0}
       className="flex flex-col items-center justify-center w-screen h-screen p-4 bg-black text-neutral-100 focus:outline-none"
     >
+      <div className="fixed top-4 right-4 text-sm text-neutral-500">
+        Favicon from{" "}
+        <motion.a
+          href="https://www.flaticon.com/free-icons/slot-machine"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white/70 underline"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.9 }}
+        >
+          Freepik
+        </motion.a>
+      </div>
       {/* 1. Title fades in first */}
       <div className="text-center mb-8">
         <motion.h1
