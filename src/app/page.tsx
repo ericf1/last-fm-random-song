@@ -40,33 +40,31 @@ export default function SlotDemo() {
     let localMax = maxPlaycount;
 
     try {
-      if (localMax == null) {
-        setUsername(username);
-        setMaxPlaycount(null);
-        setTrack(null);
-        setStatus("Fetching…");
+      setUsername(username);
+      setMaxPlaycount(null);
+      setTrack(null);
+      setStatus("Fetching…");
 
-        const res = await fetch(
-          `/api/lastfm/max-playcount?user=${encodeURIComponent(username)}`
-        );
+      const res = await fetch(
+        `/api/lastfm/max-playcount?user=${encodeURIComponent(username)}`
+      );
 
-        if (!res.ok) {
-          setStatus("Server error");
-          return;
-        }
-
-        const data = await res.json();
-        localMax =
-          typeof data.maxPlaycount === "number" ? data.maxPlaycount : null;
-
-        if (localMax == null) {
-          setStatus("No data");
-          return;
-        }
-
-        setMaxPlaycount(localMax);
-        setStatus(`${username} has ${localMax} scribbles`);
+      if (!res.ok) {
+        setStatus("Server error");
+        return;
       }
+
+      const data = await res.json();
+      localMax =
+        typeof data.maxPlaycount === "number" ? data.maxPlaycount : null;
+
+      if (localMax == null) {
+        setStatus("No data");
+        return;
+      }
+
+      setMaxPlaycount(localMax);
+      setStatus(`${username} has ${localMax} scribbles`);
     } catch {
       setStatus("Error fetching");
       return;
@@ -129,6 +127,43 @@ export default function SlotDemo() {
         return;
       }
       setLoading(true);
+
+      let localMax = maxPlaycount;
+      if (username) {
+        try {
+          setUsername(username);
+          setMaxPlaycount(null);
+          setTrack(null);
+          setStatus("Fetching…");
+
+          const res = await fetch(
+            `/api/lastfm/max-playcount?user=${encodeURIComponent(username)}`
+          );
+
+          if (!res.ok) {
+            setStatus("Server error");
+            return;
+          }
+
+          const data = await res.json();
+          localMax =
+            typeof data.maxPlaycount === "number" ? data.maxPlaycount : null;
+
+          if (localMax == null) {
+            setStatus("No data");
+            return;
+          }
+
+          setMaxPlaycount(localMax);
+          setStatus(`${username} has ${localMax} scribbles`);
+        } catch {
+          setStatus("Error fetching");
+          return;
+        } finally {
+          // don't stop loading yet; we still need to fetch the nth track
+        }
+      }
+
       const currentNumber = targets.reduce(
         (acc, digit, i) => acc + digit * 10 ** (slotLength - i - 1),
         0
