@@ -359,7 +359,7 @@ export default function SlotDemo() {
             Space
           </kbd>{" "}
           or click <span className="text-white/80 font-medium">Spin</span> to
-          get a track.
+          get a scrobble.
           <br />
           Use{" "}
           <kbd className="px-1 py-0.5 bg-neutral-800 rounded text-white/70 text-sm">

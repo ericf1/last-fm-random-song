@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "SlotFM",
-  description: "Spin to discover a random track from your Last.fm history.",
+  description: "Spin to discover a random scrobble from your Last.fm history.",
 };
 
 export default function RootLayout({
