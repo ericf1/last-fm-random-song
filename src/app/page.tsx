@@ -306,8 +306,12 @@ export default function SlotDemo() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          Random Track Spinner
+          slotfm
         </motion.h1>
+        <p className="text-neutral-500 text-sm mt-1">
+          Spin a random track from your Last.fm history
+        </p>
+
         <motion.p
           className="text-neutral-400 mt-3 max-w-xl mx-auto leading-relaxed"
           initial={{ opacity: 0, y: -10 }}
