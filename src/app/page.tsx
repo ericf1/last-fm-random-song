@@ -4,11 +4,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
 type Track = {
-  artist: { "#text": string };
-  name: string;
-  album: { "#text": string };
-  image: Array<{ "#text": string; size: string }>;
-  date?: { uts: string; "#text": string };
+  track?: {
+    artist: { "#text": string };
+    name: string;
+    album: { "#text": string };
+    image: Array<{ "#text": string; size: string }>;
+    date?: { uts: string; "#text": string };
+    url: string;
+  };
+  spotify?: {
+    id: string;
+    url: string;
+    preview?: string;
+  };
 };
 
 export default function SlotDemo() {
@@ -95,7 +103,7 @@ export default function SlotDemo() {
       });
       const res = await fetch(`/api/lastfm/get-nth-song?${params.toString()}`);
       const data = await res.json();
-      setTrack(data.track ?? null);
+      setTrack(data ?? null);
     } catch {
       // optional: setStatus("Error fetching track");
     } finally {
@@ -497,36 +505,47 @@ export default function SlotDemo() {
                 <AnimatePresence mode="popLayout">
                   {track && (
                     <motion.div
-                      key={track?.name}
+                      key={track?.track?.name}
                       className="flex flex-col items-center gap-3 text-center"
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.3 }}
                     >
-                      {track.image?.[2]?.["#text"] && (
-                        <Image
-                          src={track.image[2]["#text"]} // e.g. https://lastfm.freetls.fastly.net/i/u/...
-                          alt="Album Art"
-                          width={96}
-                          height={96} // matches w-24 h-24
-                          className="rounded-md shadow-lg object-cover"
-                          priority={false}
-                        />
+                      {track.track?.image?.[2]?.["#text"] && (
+                        <a
+                          href={track.spotify?.url ?? track.track?.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Image
+                            src={track.track?.image[2]["#text"]} // e.g. https://lastfm.freetls.fastly.net/i/u/...
+                            alt="Album Art"
+                            width={96}
+                            height={96} // matches w-24 h-24
+                            className="rounded-md shadow-lg object-cover"
+                            priority={false}
+                          />
+                        </a>
                       )}
 
                       <div>
-                        <p className="font-bold">
-                          {track.artist?.["#text"]} - {track.name}
-                        </p>
-                        {track.album?.["#text"] && (
+                        <a
+                          href={track.spotify?.url ?? track.track?.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold"
+                        >
+                          {track.track?.artist?.["#text"]} - {track.track?.name}
+                        </a>
+                        {track.track?.album?.["#text"] && (
                           <p className="text-sm text-neutral-400">
-                            {track.album["#text"]}
+                            {track.track?.album["#text"]}
                           </p>
                         )}
-                        {track.date?.["#text"] && (
+                        {track.track?.date?.["#text"] && (
                           <p className="text-xs text-neutral-500 mt-1">
-                            {track.date["#text"]}
+                            {track.track?.date["#text"]}
                           </p>
                         )}
                       </div>
