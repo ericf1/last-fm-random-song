@@ -15,6 +15,24 @@ type LastFmTrack = {
   date?: { uts: string; "#text": string };
 };
 
+type SpotifyTrack = {
+  tracks: {
+    href: string;
+    limit: number;
+    next: string | null;
+    offset: number;
+    previous: string | null;
+    total: number;
+    items: {
+      id: string;
+      name: string;
+      external_urls: { spotify: string };
+      preview_url: string | null;
+      artists: Array<{ name: string }>;
+    }[];
+  };
+};
+
 // ---- Spotify helpers ----
 let cachedSpotifyToken: { access_token: string; expires_at: number } | null =
   null;
@@ -106,7 +124,7 @@ async function findSpotifyTrack(
     // Soft-fail: just return null if Spotify is unhappy (rate limit, etc.)
     return null;
   }
-  const data = (await resp.json()) as any;
+  const data = (await resp.json()) as SpotifyTrack;
   const t = data?.tracks?.items?.[0];
   if (!t) return null;
 
@@ -115,7 +133,7 @@ async function findSpotifyTrack(
     url: t.external_urls?.spotify ?? `https://open.spotify.com/track/${t.id}`,
     preview_url: t.preview_url ?? null,
     name: t.name,
-    artists: Array.isArray(t.artists) ? t.artists.map((a: any) => a.name) : [],
+    artists: Array.isArray(t.artists) ? t.artists.map((a) => a.name) : [],
   };
 }
 
