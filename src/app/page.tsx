@@ -187,16 +187,22 @@ export default function SlotDemo() {
       const finalNumber = clampedNumber === 0 ? 1 : clampedNumber;
 
       // call server to get track
-      const track = await fetch(
-        `/api/lastfm/get-nth-song?user=${encodeURIComponent(
-          username || ""
-        )}&n=${finalNumber}&maxPlaycount=${maxPlaycount}`
-      )
-        .then((res) => res.json())
-        .then((data) => data.track)
-        .finally(() => setLoading(false));
-
-      setTrack(track);
+      try {
+        const params = new URLSearchParams({
+          user: username,
+          n: String(finalNumber),
+          maxPlaycount: String(localMax ?? ""),
+        });
+        const res = await fetch(
+          `/api/lastfm/get-nth-song?${params.toString()}`
+        );
+        const data = await res.json();
+        setTrack(data ?? null);
+      } catch {
+        // optional: setStatus("Error fetching track");
+      } finally {
+        setLoading(false);
+      }
       setSpinSignals((prev) => prev.map(() => Date.now()));
       // set targets to finalNumber
       const digits = String(finalNumber)
@@ -403,20 +409,12 @@ export default function SlotDemo() {
         </motion.p>
       </div>
 
-      {/* 2. LastfmConnector fades in second */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
         className="flex flex-col items-center gap-2"
       >
-        {/* <LastfmConnector
-          onMaxPlaycount={applyNumberToReels}
-          setUsername={setUsername}
-          setMaxPlaycount={setMaxPlaycount}
-          username={username}
-          maxPlaycount={maxPlaycount}
-        /> */}
         <input
           value={username ?? ""}
           onChange={(e) => setUsername(e.target.value)}
