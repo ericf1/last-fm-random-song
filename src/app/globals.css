@@ -43,6 +43,3 @@ html {
 }
 
 /* Fallback for older browsers or general overflow handling */
-body {
-  overflow: hidden; /* Prevents all scrolling, both horizontal and vertical */
-}

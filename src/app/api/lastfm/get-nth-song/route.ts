@@ -117,7 +117,8 @@ async function findSpotifyTrack(
 
   const resp = await fetch(`https://api.spotify.com/v1/search?${params}`, {
     headers: { Authorization: `Bearer ${token}` },
-    next: { revalidate: 300 },
+    // next: { revalidate: 300 },
+    cache: "no-store",
   });
 
   if (!resp.ok) {
